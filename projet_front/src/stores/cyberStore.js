@@ -24,7 +24,6 @@ export const useCyberStore = defineStore('cyber', {
   }),
 
   actions: {
-    // --- ENTREPRISE ---
     async loadCompany() {
       try {
         const response = await axios.get(`${API_URL}/company`)
@@ -62,16 +61,20 @@ export const useCyberStore = defineStore('cyber', {
       }
     },
 
-    // --- ACTIFS ---
     async loadAssets() {
       try {
         const response = await axios.get(`${API_URL}/assets`)
+        
+        // On mappe proprement en gardant ton sous-tableau français pour le template !
         this.assets = response.data.map(asset => ({
           id: asset.id,
-          name: asset.nom,
+          name: asset.nom || asset.name,
           type: asset.type,
-          internetExposed: !!asset.expose_internet,
-          vulnerabilities: asset.vulnerabilities ? asset.vulnerabilities.map(v => v.id) : []
+          internetExposed: asset.expose_internet !== undefined ? !!asset.expose_internet : !!asset.exposeInternet,
+          
+          // /!\ ICI ON SAUVEGARDE LES DEUX POUR ÊTRE SÛR /!\
+          vulnerabilites: asset.vulnerabilites || [], 
+          vulnerabilities: asset.vulnerabilites ? asset.vulnerabilites.map(v => v.id) : []
         }))
       } catch (error) {
         console.error("Erreur lors du chargement des actifs:", error)
@@ -109,7 +112,6 @@ export const useCyberStore = defineStore('cyber', {
       }
     },
 
-    // --- CATALOGUE DE VULNÉRABILITÉS & RELATIONS ---
     async loadCatalog() {
       try {
         const response = await axios.get(`${API_URL}/vulnerabilities`)
@@ -128,11 +130,11 @@ export const useCyberStore = defineStore('cyber', {
         const currentAsset = this.assets.find(a => a.id === assetId)
         if (!currentAsset) return
 
-        const currentVulns = currentAsset.vulnerabilities
-        const added = nextVulnIds.filter(id => !currentVulns.includes(id))
-        const removed = nextVulnIds.filter(id => currentVulns.includes(id)) 
+        const currentVulnsRaw = currentAsset.vulnerabilites || currentAsset.vulnerabilities || []
+        const currentVulnIds = currentVulnsRaw.map(v => typeof v === 'object' ? v.id : v)
         
-        // Ajout des nouvelles failles cochées
+        const added = nextVulnIds.filter(id => !currentVulnIds.includes(id))
+        
         for (const id of added) {
           const catalogItem = this.vulnerabilitiesCatalog.find(v => v.id === id)
           if (catalogItem) {
@@ -144,8 +146,7 @@ export const useCyberStore = defineStore('cyber', {
           }
         }
 
-        // Note: Si ton API ne supporte pas la suppression unitaire des failles, 
-        // l'état local est rechargé depuis la base de données MySQL pour rester consistant.
+        // On recharge l'état pour que le store soit propre
         await this.loadAssets()
         await this.triggerRiskCalculation()
       } catch (error) {
@@ -153,10 +154,9 @@ export const useCyberStore = defineStore('cyber', {
       }
     },
 
-    // --- MOTEUR DE CALCUL DE RISQUE ---
     async triggerRiskCalculation() {
       try {
-        const response = await axios.get(`${API_URL}/risk/calculate`)
+        const response = await axios.post(`${API_URL}/risk/calculate`)
         this.riskResult = {
           score: response.data.score || 0,
           level: response.data.level || 'Faible',

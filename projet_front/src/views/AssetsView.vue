@@ -49,7 +49,7 @@
               v-for="vuln in store.vulnerabilitiesCatalog" 
               :key="vuln.id"
               type="button"
-              :class="['badge-toggle', { 'selected': asset.vulnerabilities.includes(vuln.id) }, vuln.severity]"
+              :class="['badge-toggle', { 'selected': asset.vulnerabilites && asset.vulnerabilites.map(v => v.id).includes(vuln.id) }, vuln.severity]"
               @click="toggleVuln(asset, vuln.id)"
             >
               {{ vuln.name }}
@@ -83,7 +83,9 @@ const submitAsset = async () => {
 }
 
 const toggleVuln = async (asset, vulnId) => {
-  let list = [...asset.vulnerabilities]
+  // On récupère les IDs actuels depuis le tableau français 'vulnerabilites'
+  let list = asset.vulnerabilites ? asset.vulnerabilites.map(v => v.id) : []
+  
   if (list.includes(vulnId)) {
     list = list.filter(id => id !== vulnId)
   } else {
