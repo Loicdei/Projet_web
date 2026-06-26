@@ -9,7 +9,9 @@
 
     <div class="kpi-card max-width-md">
       <form @submit.prevent="handleSave" class="modern-form">
-        <h3 class="form-section-title">Informations Générales</h3>
+        <h3 class="form-section-title">
+          {{ store.company.name ? "Modifier le Périmètre Actuel" : "Initialiser le Profil de l'Entreprise" }}
+        </h3>
         
         <div class="group">
           <label>Nom de l'organisation</label>
@@ -44,7 +46,9 @@
         </div>
 
         <div class="form-actions">
-          <button type="submit" class="btn btn-primary w-full">Mettre à jour le périmètre</button>
+          <button type="submit" class="btn btn-primary w-full">
+            {{ store.company.name ? "Mettre à jour le périmètre" : "Enregistrer et créer l'entreprise" }}
+          </button>
         </div>
       </form>
     </div>
